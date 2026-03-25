@@ -5,32 +5,46 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
-	dac "github.com/xinsnake/go-http-digest-auth-client"
+	dac "github.com/Alexey71/go-http-digest-auth-client"
 )
 
 const (
 	username = "test"
 	password = "test123"
-	method   = "GET"
 	uri      = "http://172.16.1.5"
 )
 
 func main() {
-	var resp *http.Response
-	var body []byte
-	var err error
-
-	dr := dac.NewRequest(username, password, method, uri, "")
-
-	if resp, err = dr.Execute(); err != nil {
-		log.Fatalln(err)
+	client := &http.Client{
+		Transport: dac.NewDigestTransport(username, password, http.DefaultTransport),
 	}
-	defer resp.Body.Close()
 
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+	resp, err := client.Get(uri)
+	if err != nil {
 		log.Fatalln(err)
 	}
 
-	fmt.Printf(string(body))
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	fmt.Println(string(body))
+
+	// Sleep double nonce expiration interval
+	time.Sleep(10 * time.Second)
+
+	resp, err = client.Get(uri)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	fmt.Println(string(body))
 }
